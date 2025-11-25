@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Nexus Academic Hub - Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+</head>
+<body class="login-bg">
+    <div class="login-container">
+        <h1 class="neon-text">Nexus Login</h1>
+        <form id="loginForm" action="/login" method="post">
+            <input type="text" id="student_id" name="student_id" placeholder="Student ID" required>
+            <input type="hidden" name="verification_token" id="verification_token">
+            <button type="button" id="verifyBtn">Verify Face & Login</button>
+        </form>
+        <video id="video" width="320" height="240" autoplay muted></video>
+    </div>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        const video = document.getElementById('video');
+        const verifyBtn = document.getElementById('verifyBtn');
+        const studentIdInput = document.getElementById('student_id');
+        const form = document.getElementById('loginForm');
+
+        Promise.all([
+            faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/'),
+            faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/'),
+            faceapi.nets.faceRecognitionNet.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/')
+        ]).then(() => {
+            navigator.mediaDevices.getUserMedia({ video: {} }).then(stream => {
+                video.srcObject = stream;
+            });
+        });
+
+        verifyBtn.addEventListener('click', async () => {
+            const studentId = studentIdInput.value;
+            if (!studentId) return alert('Enter Student ID');
+
+            const response = await fetch(`/get_face_encoding/${studentId}`);
+            const data = await response.json();
+            if (data.error) return alert('No face data found');
+
+            const storedEncoding = new Float32Array(data.encoding);
+            const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+            if (!detection) return alert('No face detected');
+
+            const distance = faceapi.euclideanDistance(storedEncoding, detection.descriptor);
+            if (distance < 0.6) {
+                document.getElementById('verification_token').value = 'verified';
+                form.submit();
+            } else {
+                alert('Face not recognized');
+            }
+        });
+    </script>
+</body>
+</html>

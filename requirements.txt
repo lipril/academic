@@ -1,0 +1,6 @@
+flask
+flask-sqlalchemy
+numpy
+pillow
+gunicorn
+psycopg2-binary
