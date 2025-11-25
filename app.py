@@ -4,6 +4,7 @@ from models import db, Student, Result, Attendance, Assignment
 from datetime import date
 import os
 
+
 # Initialize Flask app
 app = Flask(__name__, static_folder='static', template_folder='templates')
 
@@ -78,3 +79,12 @@ def handler(event, context):
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+
+# In app.py, after db.init_app(app), add:
+with app.app_context():
+    try:
+        db.create_all()
+        print("Database connected successfully")
+    except Exception as e:
+        print(f"Database error: {e}")
